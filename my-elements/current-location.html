@@ -1,0 +1,52 @@
+<script src="../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+<link rel="import" href="../bower_components/google-map/google-map.html">
+<link rel="import" href="../bower-components/polymer/polymer.html">
+<link rel="import" href="bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/google-map/google-map-poly.html">
+<link rel="import" href="../bower_components/google-map/google-map-point.html">
+<link rel="import" href="../bower_components/geo-location/geo-location.html">
+<dom-module id="current-location">
+<template >
+  <style media="screen">
+    google-map{
+      height: 600px; /*Sets map Height */
+      width:600px;   /*sets map Width*/
+    }
+  </style>
+  <!-- Fetches current location using geo-location and assigns them to lat and long -->
+  <geo-location watch-pos high-accuracy latitude="{{la}}"longitude="{{lo}}"></geo-location>
+  <google-map map="{{map}}" latitude="[[lat]]" longitude="[[long]]" api-key="AIzaSyD2WevoC8hZpkkxmv4fUgo-ysLVrUZ0M90"  fit-to-marker >
+          <google-map-marker latitude="{{la}}" longitude="{{lo}}"
+            title="current" draggable="false">
+          </google-map-marker>
+        <!--<google-map-poly closed fill-color="blue" fill-opacity=".3" >
+            <google-map-point latitude=[[lat]]-0.5 longitude=[[long]]+1></google-map-point>
+            <google-map-point latitude=[[lat]]+0.5 longitude=[[long]]+1></google-map-point>
+            <google-map-point latitude=[[lat]]+0.5 longitude=[[long]]-1></google-map-point>
+            <google-map-point latitude=[[lat]]-0.5 longitude=-1></google-map-point>
+          </google-map-poly>-->
+     </google-map>
+     <paper-card elevation="2">
+           current-latitude:{{la}}<br>current-longitude:{{lo}}<br>
+      <br> new-latitude:{{lat}}<br>new-longitude:{{long}}
+     </paper-card>
+</template>
+
+
+<script>
+Polymer({
+  is:"current-location",
+  properties: {
+  la:{
+    type:Number,
+    value:null
+  },
+  lo:{
+    type:Number,
+    value:null
+  }
+}
+});
+</script>
+
+<\dom-module>

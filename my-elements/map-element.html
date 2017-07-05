@@ -1,0 +1,222 @@
+<script src="../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+<link rel="import" href="../bower_components/google-map/google-map.html">
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+
+<!--<link rel="import" href="../bower_components/google-apis/google-maps-api.html">-->
+
+<link rel="import" href="../bower_components/google-map/google-map-point.html">
+<link rel="import" href="../bower_components/geo-location/geo-location.html">
+<dom-module id="map-element">
+<template >
+  <style media="screen">
+    google-map
+    {
+      height: 600px; /*Sets map Height */
+      width : 600px;   /*sets map Width*/
+    }
+  </style>
+
+  <!-- Fetches current location using geo-location and assigns them to lat and lng -->
+  <geo-location watch-pos high-accuracy latitude="{{lat}}"longitude="{{lng}}" on-geo-response="_onGeoResponse"></geo-location>
+
+  <google-map map="{{map}}" id="mymapid" latitude="[[lat]]" longitude="[[lng]]"
+     api-key="AIzaSyD2WevoC8hZpkkxmv4fUgo-ysLVrUZ0M90"  fit-to-marker zoom="15" draggable="true">
+    <!-- draggable marker -->
+        <google-map-marker latitude="{{lat_marker}}" longitude="{{lng_marker}}"
+          title="You are here now" draggable="true">
+        </google-map-marker>
+   <!---->
+   <!--image fixed to lat and lng -->
+        <google-map-marker latitude="{{lat}}" longitude="{{lng}}"
+          title="geo location here" icon="../flag_icon.png" draggable="false">
+        </google-map-marker>
+
+      </google-map>
+     <!--  **testing purpose**
+     <paper-card elevation="2">
+           current-latitude:{{lat}}    new-latitude:{{lat_marker}}   prev-latitude:{{prev_lat}} <br>
+          current-longitude:{{long}}  new-longitude:{{long_marker}}  prev-longitude:{{prev_long}}
+     </paper-card>-->
+</template>
+
+
+<script>
+Polymer({
+  is:"map-element",
+  properties:
+  {
+
+    lat:{
+      type:Number,
+      value:0
+    },
+    lng:{
+      type:Number,
+      value:0
+    },
+  accuracy:{
+    type:Number,
+    value:0
+    },
+  lat_marker:{
+    type:Number,
+    value:0
+    },
+  lng_marker:{
+    type:Number,
+    value:0
+    },
+  api:{
+    type:Object
+    },
+    //oldcircle is an object for old circle created
+  oldcircle:{
+    type:Object
+    },
+    //prev_lat and prev_lng are used to store last positions of lat_marker and long_marker
+   prev_lat:{
+     type:Number,
+    },
+   prev_lng:{
+     type:Number,
+    }
+  },
+  observers:[
+    '_drawCircle(lat,lng,accuracy)',
+    '_onDragChange(lat_marker,lng_marker)'
+  ],
+
+  _drawCircle:function(lat,lng,accuracy)
+  {
+    if(lat&&lng&&accuracy)
+    {
+       centermarker={lat:parseFloat(this.lat),lng:parseFloat(this.lng)}
+       //console.log(centermarker);
+
+    try
+    {
+      oldcircle.setMap(null);
+      //console.log("old circle erased");
+    }
+    catch(e)
+    {
+      console.log(e);
+    }
+   //draw a new circle
+    try{
+        oldcircle=new google.maps.Circle({
+        strokeColor: 'BLUE',
+        strokeOpacity: 0.3,
+        strokeWeight: 1,
+        fillColor: '#5677fc',
+        fillOpacity: 0.3,
+        map: this.$.mymapid.map,
+        center: centermarker,
+        radius: accuracy
+     });
+   }
+   catch(err)
+   {
+     console.log(err);
+   }
+
+  }
+},
+
+//whenever marker is dragged this function is called
+_onDragChange: function()
+  {
+    //waits for 100 milliseconds and then _onDragChangeDebounced is called
+    this.debounce("dragchange", this._onDragChangeDebounced, 100);
+  },
+_onDragChangeDebounced:function()
+ {
+   //console.log("marker dragged");
+   //validDrag checks whether a drag is inside or outside the circle
+   //only inside drags are to be allowed
+   //dragging outside should replace the marker to previous position
+
+   var validDrag =google.maps.geometry.spherical.computeDistanceBetween(
+         new google.maps.LatLng( this.lat, this.lng),
+         new google.maps.LatLng( this.lat_marker, this.lng_marker)
+       ) <= this.accuracy;
+
+       //if dragged outside the circle
+
+       if(validDrag==false)
+      {
+        //console.log("[1] dragged outside the radius: center: ", this.lat, this.lng, "Last: ", this.lat_last, this.lng_last, "Outside: ", this.lat_marker, this.lng_marker);
+
+         if (this.prev_lat && this.prev_lng)
+         {
+             //console.log("[1] last available");
+             this.lat_marker=this.prev_lat;
+             this.lng_marker=this.prev_lng;
+         }
+         else
+         {
+             this.lat_marker=this.lat;
+             //console.log("[1] last not available: ");
+             this.lng_marker=this.lng;
+         }
+
+         //console.log("[1] <<lat_marker:",this.lat_marker,"lng_marker:",this.lng_marker);
+
+         this.fire("pointer-moved-outside");
+       }
+
+     //if dragged inside the circle
+
+     else
+     {
+       this.prev_lat = this.lat_marker;
+       this.prev_lng = this.lng_marker;
+       //console.log("[1] dragged inside the radius. setting last.");
+       //console.log("[1] <<lat_marker:",this.lat_marker,"lng_marker:",this.lng_marker);
+     }
+   },
+
+  _onGeoResponse:function(p){
+    //console.log(">>GeoLocation:",p.detail);
+    this.lat=p.detail.position.coords.latitude;
+    this.lng=p.detail.position.coords.longitude;
+    this.accuracy=p.detail.position.coords.accuracy;
+    if(this.lat_marker===0 && this.lng_marker===0)
+     {
+      this.lat_marker=this.lat;
+      this.lng_marker=this.lng;
+    }
+    this.prev_lat=this.lat_marker;
+    this.prev_lng=this.lng_marker;
+   }
+});
+/*_onDragChange:function(lat_marker,lng_marker)
+{
+  console.log("Dragged");
+   var temp=google.maps.geometry.spherical.computeDistanceBetween(
+     new google.maps.LatLng(this.lat,this.lng),
+     new google.maps.LatLng(this.lat_marker,this.lng_marker)
+   )<=this.accuracy;
+   console.log(temp);
+   if(temp==false)
+   {
+     this.lat_marker=this.prev_lat;
+     this.lng_marker=this.prev_lng;
+   }
+   else
+   {
+       this.prev_lat=this.lat_marker;
+       this.prev_lng=this.lng_marker;
+   }
+},
+
+ this.prev_lat=this.lat_marker;
+ this.prev_lng=this.lng_marker;
+
+*/
+
+
+</script>
+
+</dom-module>
